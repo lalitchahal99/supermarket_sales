@@ -1,0 +1,44 @@
+name: Run Sales CICD
+
+# on:
+#   schedule:
+#     - cron: '30 23 * * *' # At UTC 11:30pm every day
+
+# on:
+#   pull_request:
+#     branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: checkout repo content
+        uses: actions/checkout@v3 # checkout the repository content to github runner
+        with:
+          repository: <user_name>/supermarket # write repository name if private
+          token: ${{ secrets.GITHUB_TOKEN }}  # add github token for repo
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' # install the python version needed
+          
+      - name: install python packages # install py packages from requirements file
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: execute py script # run generator_txn.py
+        env:
+          MYSQL_CONNECTION_STRING: ${{ secrets.MYSQL_CONNECTION_STRING }} # add secrets in Github secret for actions
+        run: python generator_txn.py
+          
+      - name: commit log file
+        run: |
+          git config --local user.email "user@github.com"
+          git config --local user.name "User Name"
+          git add -A
+          git diff-index --quiet HEAD || (git commit -a -m "updated logs" --allow-empty)
+          git push origin HEAD:main --force
+
